@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 from torch.utils.data import DataLoader
 
 from torchvision.transforms import transforms
@@ -110,3 +111,12 @@ def load_Cifar10(batchsize, classes=None):
     )
 
     return train_dataset, test_dataset, train_dataloader, test_dataloader, classes
+
+
+def save_model(model, path):
+    torch.save(model.state_dict(), path)
+
+
+def load_model(model, path):
+    model.load_state_dict(torch.load(path))
+    return model
