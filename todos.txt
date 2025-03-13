@@ -1,8 +1,10 @@
 # loss vergleichen (loss weights)
 # validation metrics during training?
 
-# generalize: loss, show_images, model
+# generalize: loss, show_images, model (make small medium and large model)
+measure parameters
 how to load checkpoint
+continue training
 set savefile name to notebookname
 
 
