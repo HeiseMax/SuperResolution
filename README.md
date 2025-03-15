@@ -27,4 +27,4 @@ print(vdvae)
 ```
 
 All trained models can be found on Heibox:
-[Models](https://heibox.uni-heidelberg.de/d/234abe7858064a32bf2c/)
+[Models](https://heibox.uni-heidelberg.de/d/22c63c18a5a24c77ae81/)
