@@ -42,3 +42,11 @@ class PerceptualLoss(nn.Module):
         pred_features = self.vgg(pred)
         target_features = self.vgg(target)
         return F.mse_loss(pred_features, target_features)  # Feature-level loss
+
+
+def save_model(model, path):
+    torch.save(model.state_dict(), path)
+
+def load_model(model, path):
+    model.load_state_dict(torch.load(path))
+    return model
