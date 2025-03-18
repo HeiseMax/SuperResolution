@@ -68,6 +68,7 @@ class MNIST_SR_completion(Dataset):
         
         transform = transforms.Compose([
             transforms.ToTensor(),
+            transforms.Resize((32, 32))
         ])
         self.HR_dataset = datasets.MNIST(root="./data", train=train, transform=transform, download=download)
 

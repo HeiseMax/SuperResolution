@@ -53,7 +53,7 @@ class AE(nn.Module):
         super().__init__()
         self.latent_dims = latent_dims
         self.channels = channels
-
+        self.loss =[]
         self.encoder = AELREncoder(in_channels, channels, latent_dims, base_width)
         self.decoder = AEDecoder(in_channels, channels, latent_dims)
 
