@@ -45,7 +45,10 @@ class MNIST_SR(Dataset):
         HR_samples = []
         LR_samples = []
         for i in range(n_samples):
-            ind = np.random.randint(len(self))
+            if self.split == "train":
+                ind = np.random.randint(len(self))
+            else:
+                ind = i
             HR, LR = self[ind]
             HR_samples.append(HR)
             LR_samples.append(LR)
@@ -99,7 +102,10 @@ class MNIST_SR_completion(Dataset):
         LR_samples = []
         LR_up_samples = []
         for i in range(n_samples):
-            ind = np.random.randint(len(self))
+            if self.split == "train":
+                ind = np.random.randint(len(self))
+            else:
+                ind = i
             HR, LR, LR_up = self[ind]
             HR_samples.append(HR)
             LR_samples.append(LR)
@@ -152,7 +158,10 @@ class CIFAR_SR(Dataset):
         HR_samples = []
         LR_samples = []
         for i in range(n_samples):
-            ind = np.random.randint(len(self))
+            if self.split == "train":
+                ind = np.random.randint(len(self))
+            else:
+                ind = i
             HR, LR = self[ind]
             HR_samples.append(HR)
             LR_samples.append(LR)
@@ -212,7 +221,10 @@ class CIFAR_SR_completion(Dataset):
         LR_samples = []
         LR_up_samples = []
         for i in range(n_samples):
-            ind = np.random.randint(len(self))
+            if self.split == "train":
+                ind = np.random.randint(len(self))
+            else:
+                ind = i
             HR, LR, LR_up = self[ind]
             HR_samples.append(HR)
             LR_samples.append(LR)
