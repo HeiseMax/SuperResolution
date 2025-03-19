@@ -39,6 +39,9 @@ class PerceptualLoss(nn.Module):
         self.vgg = vgg
 
     def forward(self, pred, target):
+        if pred.shape[1] == 1:
+            pred = pred.repeat(1, 3, 1, 1)
+            target = target.repeat(1, 3, 1, 1)
         pred_features = self.vgg(pred)
         target_features = self.vgg(target)
         return F.mse_loss(pred_features, target_features)  # Feature-level loss
