@@ -90,7 +90,9 @@ class HVAE(nn.Module):
 
         sampled_latents = [z1, z2, z3]
         output = self.decoder(sampled_latents)
-        recon_x = F.sigmoid(self.combiner(torch.cat([output, x_lr_up], dim=1)))
+        # recon_x = F.sigmoid(self.combiner(torch.cat([output, x_lr_up], dim=1)))
+        recon_x = output + x_lr_up
+        recon_x = torch.clamp(recon_x, 0, 1)
         return recon_x, latents
     
     def sample(self, x_lr):
@@ -216,7 +218,9 @@ class ConditionalHierarchicalVAE(nn.Module):
 
         sampled_latents = [z1, z2, z3]
         output = self.decoder(sampled_latents, condition)
-        recon_x = F.sigmoid(self.combiner(torch.cat([output, x_lr_up], dim=1)))
+        # recon_x = F.sigmoid(self.combiner(torch.cat([output, x_lr_up], dim=1)))
+        recon_x = output + x_lr_up
+        recon_x = torch.clamp(recon_x, 0, 1)
         return recon_x, latents
     
     def sample(self, x_lr):
@@ -231,5 +235,7 @@ class ConditionalHierarchicalVAE(nn.Module):
         
         condition = self.lr_encoder(x_lr)
         output = self.decoder(sampled_latents, condition)
-        recon_x = F.sigmoid(self.combiner(torch.cat([output, x_lr_up], dim=1)))
+        # recon_x = F.sigmoid(self.combiner(torch.cat([output, x_lr_up], dim=1)))
+        recon_x = output + x_lr_up
+        recon_x = torch.clamp(recon_x, 0, 1)
         return recon_x

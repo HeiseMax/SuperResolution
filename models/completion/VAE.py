@@ -71,7 +71,9 @@ class VAE(nn.Module):
 
         sampled_latents = [z]
         output = self.decoder(sampled_latents)
-        recon_x = F.sigmoid(self.combiner(torch.cat([output, x_lr_up], dim=1)))
+        # recon_x = F.sigmoid(self.combiner(torch.cat([output, x_lr_up], dim=1)))
+        recon_x = output + x_lr_up
+        recon_x = torch.clamp(recon_x, 0, 1)
         return recon_x, latents
     
     def sample(self, x_lr):
@@ -135,6 +137,7 @@ class ConditionalVAEDecoder(nn.Module):
         x3 = nn.ReLU()(x3)
         x4 = self.deconv3(x3)
         output = self.out_conv(x4)
+        output = nn.Tanh()(output)
         return output
 
 
@@ -179,7 +182,9 @@ class ConditionalVAE(nn.Module):
 
         sampled_latents = [z]
         output = self.decoder(sampled_latents, condition)
-        recon_x = F.sigmoid(self.combiner(torch.cat([output, x_lr_up], dim=1)))
+        # recon_x = F.sigmoid(self.combiner(torch.cat([output, x_lr_up], dim=1)))
+        recon_x = output + x_lr_up
+        recon_x = torch.clamp(recon_x, 0, 1)
         return recon_x, latents
     
     def sample(self, x_lr):
@@ -192,5 +197,7 @@ class ConditionalVAE(nn.Module):
         
         condition = self.lr_encoder(x_lr)
         output = self.decoder(sampled_latents, condition)
-        recon_x = F.sigmoid(self.combiner(torch.cat([output, x_lr_up], dim=1)))
+        # recon_x = F.sigmoid(self.combiner(torch.cat([output, x_lr_up], dim=1)))
+        recon_x = output + x_lr_up
+        recon_x = torch.clamp(recon_x, 0, 1)
         return recon_x
