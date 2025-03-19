@@ -4,3 +4,4 @@ lightning_logs/
 stuff/
 checkpoints/
 .conda/
+trained_models/
