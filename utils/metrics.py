@@ -15,6 +15,7 @@ def validation_scores(model, HR, LR):
     brisque_val = brisque(SR).item()
 
     SR_downsampled = Resize((LR.size(2), LR.size(3)))(SR)
+    SR_downsampled = SR_downsampled.clamp(0, 1)
 
     psnr_consistency_val = psnr(LR, SR_downsampled, data_range=1.0).item()
 
