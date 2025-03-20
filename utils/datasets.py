@@ -38,7 +38,6 @@ class MNIST_SR(Dataset):
     def __getitem__(self, index):
         HR, _ = self.HR_dataset[index]
         LR, _ = self.LR_dataset[index]
-        # LR = (LR - LR.min()) / (LR.max() - LR.min())
         return HR.to(self.device), LR.to(self.device)
     
     def get_samples(self, n_samples):
@@ -135,15 +134,16 @@ class CIFAR_SR(Dataset):
 
         transform_resize = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Resize((32 // scale_factor, 32 // scale_factor))
+            transforms.Resize((32 // scale_factor, 32 // scale_factor)),
         ])
         self.LR_dataset = datasets.CIFAR10(root="./data", train=train, transform=transform_resize, download=download)
 
         if classes != None:
             self.HR_dataset.data = self.HR_dataset.data[np.isin(self.HR_dataset.targets, classes)]
-            self.HR_dataset.targets = [1] * len(self.HR_dataset.data)
+            self.HR_dataset.targets = self.HR_dataset.targets[np.isin(self.HR_dataset.targets, classes)]
             self.LR_dataset.data = self.LR_dataset.data[np.isin(self.LR_dataset.targets, classes)]
-            self.LR_dataset.targets = [1] * len(self.LR_dataset.data)   
+            self.LR_dataset.targets = self.LR_dataset.targets[np.isin(self.LR_dataset.targets, classes)]
+            
 
     def __len__(self):
         return len(self.HR_dataset)
@@ -201,11 +201,11 @@ class CIFAR_SR_completion(Dataset):
 
         if classes != None:
             self.HR_dataset.data = self.HR_dataset.data[np.isin(self.HR_dataset.targets, classes)]
-            self.HR_dataset.targets = [1] * len(self.HR_dataset.data)
+            self.HR_dataset.targets = self.HR_dataset.targets[np.isin(self.HR_dataset.targets, classes)]
             self.LR_dataset.data = self.LR_dataset.data[np.isin(self.LR_dataset.targets, classes)]
-            self.LR_dataset.targets = [1] * len(self.LR_dataset.data)
+            self.LR_dataset.targets =  self.LR_dataset.targets[np.isin(self.LR_dataset.targets, classes)]
             self.LR_up_dataset.data = self.LR_up_dataset.data[np.isin(self.LR_up_dataset.targets, classes)]
-            self.LR_up_dataset.targets = [1] * len(self.LR_up_dataset.data)
+            self.LR_up_dataset.targets =  self.LR_up_dataset.targets[np.isin(self.LR_up_dataset.targets, classes)]
 
     def __len__(self):
         return len(self.HR_dataset)
