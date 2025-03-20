@@ -1,9 +1,18 @@
 import torch.nn.functional as F
 from torchvision.transforms import Resize
 from piq import psnr, ssim, brisque, LPIPS
+from utils.utils import PerceptualLoss
 
-def validation_scores(model, HR, LR):
+def validation_scores(model, HR, LR, device="cuda"):
+    HR = HR.clamp(0, 1)
+    LR = LR.clamp(0, 1)
+    
     SR = model.sample(LR)
+    SR = SR.clamp(0, 1)
+
+    mse_val = F.mse_loss(SR, HR, reduction='mean').item()
+
+    perceptual_val = PerceptualLoss().to(device)(SR, HR).item()
 
     psnr_val = psnr(HR, SR, data_range=1.0).item()
 
@@ -38,4 +47,4 @@ def validation_scores(model, HR, LR):
     mse_diversity_val /= n_iterations*n_samples
     lpips_diversity_val /= n_iterations*n_samples
 
-    return psnr_val, ssim_val, lpips_val, brisque_val, psnr_consistency_val, mse_diversity_val, lpips_diversity_val
+    return mse_val, perceptual_val, psnr_val, ssim_val, lpips_val, brisque_val, psnr_consistency_val, mse_diversity_val, lpips_diversity_val
