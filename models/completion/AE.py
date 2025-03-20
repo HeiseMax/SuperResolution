@@ -46,24 +46,26 @@ class AEDecoder(nn.Module):
         x3 = nn.ReLU()(x3)
         x4 = self.deconv3(x3)
         output = self.out_conv(x4)
+        output = torch.tanh(output)
         return output
 
 
 # VAE Module
 class AE(nn.Module):
-    def __init__(self, in_channels=3, channels=[32, 64, 128, 256], latent_dims=[64, 128, 256], base_width=16):
+    def __init__(self, in_channels=3, channels=[32, 64, 128, 256], latent_dims=[64, 128, 256], base_width=16, scale = 1.0):
         super().__init__()
         self.latent_dims = latent_dims
         self.channels = channels
         self.loss = []
         self.encoder = AELREncoder(in_channels, channels, latent_dims, base_width)
         self.decoder = AEDecoder(in_channels, channels, latent_dims)
-        self.combiner = nn.Conv2d(in_channels*2, in_channels, 1, 1, 0)
+        self.scale = scale
 
     def forward(self, x_lr, x_lr_up):
         z = self.encoder(x_lr)
         output = self.decoder(z)
-        recon_x = F.sigmoid(self.combiner(torch.cat([output, x_lr_up], dim=1)))
+        recon_x = output + (x_lr_up * self.scale)
+        recon_x= torch.clamp(recon_x, 0, 1)
         return recon_x
     
     def sample(self, x_lr):
