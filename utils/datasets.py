@@ -4,6 +4,52 @@ from torch.utils.data import Dataset
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 
+from PIL import Image
+
+class Pokemon_SR(Dataset):    
+    def __init__(self, path="pokemon.npy", scale_factor=4, split="train", device="cuda"):
+        self.device = device
+        self.scale_factor = scale_factor
+        self.split = split
+
+        # Load the dataset
+        data = np.load(path).astype(np.float32) / 255.0  # Normalize
+        data = torch.tensor(data).permute(0, 3, 1, 2)  # To [N, C, H, W]
+
+        # Split into train/val
+        train_size = int(0.8 * len(data))
+        val_size = len(data) - train_size
+        train_data, val_data = torch.utils.data.random_split(data, [train_size, val_size])
+
+        self.data = train_data if split == "train" else val_data
+
+        self.hr_transform = transforms.Resize((256, 256))  # or use data.shape[-2:]
+        self.lr_transform = transforms.Resize((256 // scale_factor, 256 // scale_factor))
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        hr_img = self.data[idx]  # Tensor: [C, H, W]
+
+        # Convert tensor to PIL for torchvision transforms
+        hr_img_pil = transforms.ToPILImage()(hr_img)
+
+        # Apply HR and LR transforms
+        hr_img = transforms.ToTensor()(self.hr_transform(hr_img_pil))
+        lr_img = transforms.ToTensor()(self.lr_transform(hr_img_pil))
+
+        return lr_img.to(self.device), hr_img.to(self.device)
+
+    def get_samples(self, n_samples):
+        hr_samples = []
+        lr_samples = []
+        for i in range(n_samples):
+            idx = np.random.randint(len(self)) if self.split == "train" else i
+            lr, hr = self[idx]
+            hr_samples.append(hr)
+            lr_samples.append(lr)
+        return torch.stack(hr_samples), torch.stack(lr_samples)
 
 # MNIST
 class MNIST_SR(Dataset):    
