@@ -4,7 +4,58 @@ from torch.utils.data import Dataset
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 
+
 from PIL import Image
+import os
+from sklearn.model_selection import train_test_split
+
+class CelebA_SR(Dataset):
+    def __init__(self, folder_path="E:\GNN\gnn\datasets\celeba_hq_256", scale_factor=4, split="train", device="cuda"):
+        self.device = device
+        self.scale_factor = scale_factor
+        self.split = split.lower()
+        self.image_paths = sorted([
+            os.path.join(folder_path, f)
+            for f in os.listdir(folder_path)
+            if f.lower().endswith(".jpg")
+        ])
+
+        # Split paths into train/val
+        train_paths, val_paths = train_test_split(self.image_paths, test_size=0.2, random_state=42)
+        self.data_paths = train_paths if self.split == "train" else val_paths
+
+        # Define transforms
+        self.hr_transform = transforms.Compose([
+            transforms.Resize((256, 256)),
+            transforms.ToTensor()
+        ])
+        self.lr_transform = transforms.Compose([ 
+            transforms.Resize((256 // scale_factor, 256 // scale_factor)),
+            transforms.ToTensor()
+        ])
+
+    def __len__(self):
+        return len(self.data_paths)
+
+    def __getitem__(self, idx):
+        img_path = self.data_paths[idx]
+        img = Image.open(img_path).convert("RGB")
+
+        hr_img = self.hr_transform(img)
+        lr_img = self.lr_transform(img)
+
+        return lr_img.to(self.device), hr_img.to(self.device)
+
+    def get_samples(self, n_samples):
+        hr_samples = []
+        lr_samples = []
+        for i in range(n_samples):
+            idx = np.random.randint(len(self)) if self.split == "train" else i
+            lr, hr = self[idx]
+            hr_samples.append(hr)
+            lr_samples.append(lr)
+        return torch.stack(hr_samples), torch.stack(lr_samples)
+
 
 class Pokemon_SR(Dataset):    
     def __init__(self, path="pokemon.npy", scale_factor=4, split="train", device="cuda"):
@@ -58,13 +109,13 @@ class MNIST_SR(Dataset):
         self.split = split
         self.device = device
 
-        match split:
-            case "train":
-                train = True
-            case "test":
-                train = False
-            case other:
-                raise NotImplementedError(f"Unrecognized split: '{other}'")
+        if split == "train":
+            train = True
+        elif split == "test":
+            train = False
+        else:
+            raise NotImplementedError(f"Unrecognized split: '{split}'")
+
         
         transform = transforms.Compose([
             transforms.ToTensor(),
@@ -106,13 +157,12 @@ class MNIST_SR_completion(Dataset):
         self.split = split
         self.device = device
 
-        match split:
-            case "train":
-                train = True
-            case "test":
-                train = False
-            case other:
-                raise NotImplementedError(f"Unrecognized split: '{other}'")
+        if split == "train":
+            train = True
+        elif split == "test":
+            train = False
+        else:
+            raise NotImplementedError(f"Unrecognized split: '{split}'")
         
         transform = transforms.Compose([
             transforms.ToTensor(),
@@ -165,13 +215,12 @@ class CIFAR_SR(Dataset):
         self.split = split
         self.device = device
 
-        match split:
-            case "train":
-                train = True
-            case "test":
-                train = False
-            case other:
-                raise NotImplementedError(f"Unrecognized split: '{other}'")
+        if split == "train":
+            train = True
+        elif split == "test":
+            train = False
+        else:
+            raise NotImplementedError(f"Unrecognized split: '{split}'")
         
         transform = transforms.Compose([
             transforms.ToTensor(),
@@ -219,13 +268,12 @@ class CIFAR_SR_completion(Dataset):
         self.split = split
         self.device = device
 
-        match split:
-            case "train":
-                train = True
-            case "test":
-                train = False
-            case other:
-                raise NotImplementedError(f"Unrecognized split: '{other}'")
+        if split == "train":
+            train = True
+        elif split == "test":
+            train = False
+        else:
+            raise NotImplementedError(f"Unrecognized split: '{split}'")
         
         transform = transforms.Compose([
             transforms.ToTensor(),

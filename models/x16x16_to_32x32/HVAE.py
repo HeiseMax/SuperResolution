@@ -118,3 +118,27 @@ class HierarchicalVDVAE(nn.Module):
         condition = self.lr_encoder(x_lr)
         recon_x = self.decoder(sampled_latents, condition)
         return recon_x
+    
+    def sample2(self, x_lr):
+        condition = self.lr_encoder(x_lr)
+
+        z1 = torch.randn(x_lr.size(0), 64).to(x_lr.device)
+        z2 = torch.randn(x_lr.size(0), 128).to(x_lr.device)
+        z3 = torch.randn(x_lr.size(0), 256).to(x_lr.device)
+
+        recon_x = self.decoder([z1, z2, z3], condition)
+        return recon_x
+    
+    def sample3(self, x_lr):
+        num_samples = x_lr.size(0)
+        device = next(self.parameters()).device
+
+        z1 = torch.randn(num_samples, 64).to(device)
+        z2 = torch.randn(num_samples, 128).to(device)
+        z3 = torch.randn(num_samples, 256).to(device)
+        sampled_latents = [z1, z2, z3]
+        
+        condition = self.lr_encoder(x_lr)
+        recon_x = self.decoder(sampled_latents, condition)
+        return recon_x
+
