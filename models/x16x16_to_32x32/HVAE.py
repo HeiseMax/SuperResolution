@@ -4,9 +4,9 @@ from utils.utils import sample_latent
 
 # Encoder Module
 class HierarchicalLREncoder(nn.Module):
-    def __init__(self, in_channels=3, base_width=32, latent_dims=None):
+    def __init__(self, in_channels=3):
         super().__init__()
-        self.in_conv = nn.Conv2d(3, 32, 1, 1, 0)  # 16x16
+        self.in_conv = nn.Conv2d(in_channels, 32, 1, 1, 0)  # 16x16
         self.down1 = nn.Conv2d(32, 64, 4, stride=2, padding=1)  # 8x8
         
         self.fc1 = nn.Linear(64 * 8 * 8, 64)
@@ -22,9 +22,9 @@ class HierarchicalLREncoder(nn.Module):
         return [c1, c2]
     
 class HierarchicalEncoder(nn.Module):
-    def __init__(self, in_channels=3, base_width=32, latent_dims=None):
+    def __init__(self, in_channels=3):
         super().__init__()
-        self.in_conv = nn.Conv2d(3, 32, 1, 1, 0)  # 32x32
+        self.in_conv = nn.Conv2d(in_channels, 32, 1, 1, 0)  # 32x32
         self.down1 = nn.Conv2d(32, 64, 4, stride=2, padding=1)  # 16x16
         self.down2 = nn.Conv2d(64, 128, 4, stride=2, padding=1)  # 8x8
         
@@ -51,7 +51,7 @@ class HierarchicalEncoder(nn.Module):
 
 # Decoder Module
 class HierarchicalDecoder(nn.Module):
-    def __init__(self, latent_dims=[32, 64, 128, 256], base_width=32, out_channels=3):
+    def __init__(self, out_channels=3):
         super().__init__()
         self.fc1 = nn.Linear(64, 128 * 8 * 8)
         self.fc2 = nn.Linear(128, 64 * 16 * 16)
@@ -63,7 +63,7 @@ class HierarchicalDecoder(nn.Module):
         self.deconv1 = nn.ConvTranspose2d(128*2, 64, 4, stride=2, padding=1)  # 16x16
         self.deconv2 = nn.ConvTranspose2d(64*2, 32, 4, stride=2, padding=1)  # 32x32
 
-        self.out_conv = nn.Conv2d(32, 3, 1, 1, 0)
+        self.out_conv = nn.Conv2d(32, out_channels, 1, 1, 0)
 
     def forward(self, z_hierarchical, condition):
         z1, z2, z3 = z_hierarchical
@@ -90,15 +90,11 @@ class HierarchicalDecoder(nn.Module):
 
 # Hierarchical VDVAE Model
 class HierarchicalVDVAE(nn.Module):
-    def __init__(self, in_channels=3, base_width=32, latent_dims = [64, 128, 256]):
+    def __init__(self, in_channels=3):
         super().__init__()
-        self.encoder = HierarchicalEncoder(in_channels, base_width, latent_dims)
-        self.lr_encoder = HierarchicalLREncoder(in_channels, base_width, latent_dims)
-        self.decoder = HierarchicalDecoder(latent_dims, base_width, in_channels)
-
-        # Add Linear layers to project latent dimensions before conditioning
-        # self.project_z1 = nn.Linear(latent_dims[0], latent_dims[1])  # Projects 32 → 64
-        # self.project_z2 = nn.Linear(latent_dims[1], latent_dims[2])  # Projects 64 → 128
+        self.encoder = HierarchicalEncoder(in_channels)
+        self.lr_encoder = HierarchicalLREncoder(in_channels)
+        self.decoder = HierarchicalDecoder(in_channels)
 
     def forward(self, x, x_lr):
         latents = self.encoder(x)
@@ -122,3 +118,27 @@ class HierarchicalVDVAE(nn.Module):
         condition = self.lr_encoder(x_lr)
         recon_x = self.decoder(sampled_latents, condition)
         return recon_x
+    
+    def sample2(self, x_lr):
+        condition = self.lr_encoder(x_lr)
+
+        z1 = torch.randn(x_lr.size(0), 64).to(x_lr.device)
+        z2 = torch.randn(x_lr.size(0), 128).to(x_lr.device)
+        z3 = torch.randn(x_lr.size(0), 256).to(x_lr.device)
+
+        recon_x = self.decoder([z1, z2, z3], condition)
+        return recon_x
+    
+    def sample3(self, x_lr):
+        num_samples = x_lr.size(0)
+        device = next(self.parameters()).device
+
+        z1 = torch.randn(num_samples, 64).to(device)
+        z2 = torch.randn(num_samples, 128).to(device)
+        z3 = torch.randn(num_samples, 256).to(device)
+        sampled_latents = [z1, z2, z3]
+        
+        condition = self.lr_encoder(x_lr)
+        recon_x = self.decoder(sampled_latents, condition)
+        return recon_x
+
