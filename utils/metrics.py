@@ -32,6 +32,9 @@ def validation_scores(model, HR, LR, device="cuda"):
     lpips_diversity_val = 0
     n_iterations = 32
     n_samples = 8
+
+    if n_iterations >= len(LR):
+        n_iterations = len(LR)
     for i in range(n_iterations):
         LR_input = LR[i].unsqueeze(0)
         LR_input = LR_input.repeat(n_samples, 1, 1, 1)
