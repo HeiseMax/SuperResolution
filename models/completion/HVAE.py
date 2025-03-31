@@ -18,12 +18,12 @@ class HVAELREncoder(nn.Module):
         self.fc_logvar1 = nn.Linear(channels[2] * width * width, latent_dims[0])
 
         width = width * 2
-        self.fc_mu2 = nn.Linear(channels[1] * 8 * 8, latent_dims[1])
-        self.fc_logvar2 = nn.Linear(channels[1] * 8 * 8, latent_dims[1])
+        self.fc_mu2 = nn.Linear(channels[1] * width * width, latent_dims[1])
+        self.fc_logvar2 = nn.Linear(channels[1] * width * width, latent_dims[1])
 
         width = width * 2
-        self.fc_mu3 = nn.Linear(channels[0] * 16 * 16, latent_dims[2])
-        self.fc_logvar3 = nn.Linear(channels[0] * 16 * 16, latent_dims[2])
+        self.fc_mu3 = nn.Linear(channels[0] * width * width, latent_dims[2])
+        self.fc_logvar3 = nn.Linear(channels[0] * width * width, latent_dims[2])
 
     def forward(self, x):
         x0 = self.in_conv(x)  # base_width x base_width
@@ -66,7 +66,7 @@ class HVAEDecoder(nn.Module):
         x2 = x2 + z3
         x3 = self.deconv3(x2)
         output = self.out_conv(x3)
-        return output
+        return torch.tanh(output)
 
 
 # VAE Module
@@ -78,15 +78,17 @@ class HVAE(nn.Module):
 
         self.encoder = HVAELREncoder(in_channels, channels, latent_dims, base_width)
         self.decoder = HVAEDecoder(in_channels, channels, latent_dims)
-        self.combiner = nn.Conv2d(in_channels*2, in_channels, 1, 1, 0)
+
+        self.project_z1 = nn.Linear(latent_dims[0], latent_dims[1])  # Projects 128 → 256
+        self.project_z2 = nn.Linear(latent_dims[1], latent_dims[2])  # Projects 256 → 512
 
     def forward(self, x_lr, x_lr_up):
         latents = self.encoder(x_lr)
 
         # latent sampling with projection
         z1 = sample_latent(latents[0][0], latents[0][1])
-        z2 = sample_latent(latents[1][0], latents[1][1])
-        z3 = sample_latent(latents[2][0], latents[2][1])
+        z2 = sample_latent(latents[1][0], latents[1][1], self.project_z1(z1))
+        z3 = sample_latent(latents[2][0], latents[2][1], self.project_z2(z2))
 
         sampled_latents = [z1, z2, z3]
         output = self.decoder(sampled_latents)
@@ -171,6 +173,7 @@ class ConditionalHierarchicalDecoder(nn.Module):
         x3 = x3 + z3
         x4 = self.deconv3(x3)
         output = self.out_conv(x4)
+        output = torch.tanh(output)
         return output
     
 
@@ -207,15 +210,17 @@ class ConditionalHierarchicalVAE(nn.Module):
         self.decoder = ConditionalHierarchicalDecoder(in_channels, channels, latent_dims, condition_dims)
         self.combiner = nn.Conv2d(in_channels*2, in_channels, 1, 1, 0)
 
+        self.project_z1 = nn.Linear(latent_dims[0], latent_dims[1])  # Projects 128 → 256
+        self.project_z2 = nn.Linear(latent_dims[1], latent_dims[2])  # Projects 256 → 512
+
     def forward(self, x, x_lr, x_lr_up):
         latents = self.encoder(x)
         condition = self.lr_encoder(x_lr)
 
         # Hierarchical latent sampling with projection
         z1 = sample_latent(latents[0][0], latents[0][1])
-        z2 = sample_latent(latents[1][0], latents[1][1])
-        z3 = sample_latent(latents[2][0], latents[2][1])
-
+        z2 = sample_latent(latents[1][0], latents[1][1], self.project_z1(z1))
+        z3 = sample_latent(latents[2][0], latents[2][1], self.project_z2(z2))
         sampled_latents = [z1, z2, z3]
         output = self.decoder(sampled_latents, condition)
         # recon_x = F.sigmoid(self.combiner(torch.cat([output, x_lr_up], dim=1)))
@@ -228,9 +233,9 @@ class ConditionalHierarchicalVAE(nn.Module):
         device = next(self.parameters()).device
         x_lr_up = Resize((32, 32))(x_lr)
 
-        z1 = torch.randn(num_samples, self.latent_dims[0]).to(device)
-        z2 = torch.randn(num_samples, self.latent_dims[1]).to(device)
-        z3 = torch.randn(num_samples, self.latent_dims[2]).to(device)
+        z1 = sample_latent(torch.zeros((num_samples, self.latent_dims[0])).to(device), torch.zeros((num_samples, self.latent_dims[0])).to(device))
+        z2 = sample_latent(torch.zeros((num_samples, self.latent_dims[1])).to(device), torch.zeros((num_samples, self.latent_dims[1])).to(device), self.project_z1(z1))
+        z3 = sample_latent(torch.zeros((num_samples, self.latent_dims[2])).to(device), torch.zeros((num_samples, self.latent_dims[2])).to(device), self.project_z2(z2))
         sampled_latents = [z1, z2, z3]
         
         condition = self.lr_encoder(x_lr)

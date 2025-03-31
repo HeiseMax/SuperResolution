@@ -49,7 +49,7 @@ class VAEDecoder(nn.Module):
         x3 = nn.ReLU()(x3)
         x4 = self.deconv3(x3)
         output = self.out_conv(x4)
-        return output
+        return torch.tanh(output)
 
 
 # VAE Module

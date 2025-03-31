@@ -20,12 +20,12 @@ class HVAELREncoder(nn.Module):
         self.fc_logvar1 = nn.Linear(channels[2] * width * width, latent_dims[0])
 
         width = width * 2
-        self.fc_mu2 = nn.Linear(channels[1] * 8 * 8, latent_dims[1])
-        self.fc_logvar2 = nn.Linear(channels[1] * 8 * 8, latent_dims[1])
+        self.fc_mu2 = nn.Linear(channels[1] * width * width, latent_dims[1])
+        self.fc_logvar2 = nn.Linear(channels[1] * width * width, latent_dims[1])
 
         width = width * 2
-        self.fc_mu3 = nn.Linear(channels[0] * 16 * 16, latent_dims[2])
-        self.fc_logvar3 = nn.Linear(channels[0] * 16 * 16, latent_dims[2])
+        self.fc_mu3 = nn.Linear(channels[0] * width * width, latent_dims[2])
+        self.fc_logvar3 = nn.Linear(channels[0] * width * width, latent_dims[2])
 
     def forward(self, x):
         x0 = self.in_conv(x)  # base_width x base_width
@@ -81,13 +81,16 @@ class HVAE(nn.Module):
         self.encoder = HVAELREncoder(in_channels, channels, latent_dims, base_width)
         self.decoder = HVAEDecoder(in_channels, channels, latent_dims)
 
+        self.project_z1 = nn.Linear(latent_dims[0], latent_dims[1])  # Projects 128 → 256
+        self.project_z2 = nn.Linear(latent_dims[1], latent_dims[2])  # Projects 256 → 512
+
     def forward(self, x_lr):
         latents = self.encoder(x_lr)
 
         # latent sampling with projection
         z1 = sample_latent(latents[0][0], latents[0][1])
-        z2 = sample_latent(latents[1][0], latents[1][1])
-        z3 = sample_latent(latents[2][0], latents[2][1])
+        z2 = sample_latent(latents[1][0], latents[1][1], self.project_z1(z1))
+        z3 = sample_latent(latents[2][0], latents[2][1], self.project_z2(z2))
 
         sampled_latents = [z1, z2, z3]
         recon_x = self.decoder(sampled_latents)
@@ -203,14 +206,18 @@ class ConditionalHierarchicalVAE(nn.Module):
         self.lr_encoder = ConditionalHierarchicalLREncoder(in_channels,cond_channels, condition_dims, cond_base_width)
         self.decoder = ConditionalHierarchicalDecoder(in_channels, channels, latent_dims, condition_dims)
 
+        # self.h = nn.Parameter(torch.randn(1))
+        self.project_z1 = nn.Linear(latent_dims[0], latent_dims[1])  # Projects 128 → 256
+        self.project_z2 = nn.Linear(latent_dims[1], latent_dims[2])  # Projects 256 → 512
+
     def forward(self, x, x_lr):
         latents = self.encoder(x)
         condition = self.lr_encoder(x_lr)
 
         # Hierarchical latent sampling with projection
         z1 = sample_latent(latents[0][0], latents[0][1])
-        z2 = sample_latent(latents[1][0], latents[1][1])
-        z3 = sample_latent(latents[2][0], latents[2][1])
+        z2 = sample_latent(latents[1][0], latents[1][1], self.project_z1(z1))
+        z3 = sample_latent(latents[2][0], latents[2][1], self.project_z2(z2))
 
         sampled_latents = [z1, z2, z3]
         recon_x = self.decoder(sampled_latents, condition)
